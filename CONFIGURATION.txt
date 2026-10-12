@@ -1,0 +1,28 @@
+SMC PULSE — DÉPLOIEMENT NETLIFY (MODE CODE PARTAGÉ + ANALYTICS)
+
+1) Publiez le contenu de ce dossier sur Netlify.
+2) Avant de republier, mettez dans config.js l'adresse HTTPS actuelle du bridge SMC dans apiBaseUrl. Si vous remplacez les fichiers du site déjà en service, recopiez d'abord l'URL apiBaseUrl actuellement utilisée : elle n'est pas dans ce package, car chaque usine/tunnel possède son propre domaine.
+   Exemple : apiBaseUrl: "https://smc-bridge.votre-domaine.fr"
+   Cette URL n'est pas un secret. Ne mettez jamais le code d'accès dans config.js.
+3) Le PC usine doit exécuter le projet complet, avec le bridge activé et le même code partagé configuré dans SMC_MOBILE_ACCESS_CODE.
+4) Les téléphones ouvrent le site Netlify et saisissent uniquement le code partagé.
+
+NOUVELLES DONNÉES AFFICHÉES
+- Quantité Finished good produite sur le shift actuel.
+- Downtime total du shift actuel (chevauchements dédupliqués pour le total de la ligne).
+- Historique filtrable par date et Shift 1 / Shift 2 / Shift 3, ou Tous les shifts.
+- Quantité produite, downtime total, nombre d'événements, Top 5 des causes/sujets et événements correspondants.
+
+La page Netlify ne lit pas le PLC directement. Le bridge sur le PC usine doit être joignable par HTTPS via un VPN d'entreprise ou un tunnel HTTPS sécurisé approuvé par votre IT. N'ouvrez pas directement le port 8765 sur Internet et ne mettez jamais le code dans les fichiers Netlify.
+
+Sur le PC usine (PowerShell, dossier du projet complet) :
+  py -3.11 -m pip install -r requirements.txt
+  py -3.11 -m pip install -r requirements-mobile.txt
+  $env:SMC_MOBILE_API_ENABLED = "1"
+  $env:SMC_MOBILE_ACCESS_CODE = "REMPLACER-PAR-UN-CODE-PRIVE-10-CHAR-MINIMUM"
+  $env:SMC_MOBILE_ALLOWED_ORIGINS = "https://dash-smc1.netlify.app"
+  py -3.11 main.py
+
+Pour lancer l'EXE, reconstruisez-le après mise à jour du projet avec la commande PyInstaller du README principal, puis placez run_smc_with_mobile.bat à côté de l'EXE et personnalisez le code partagé dans ce fichier.
+Le code partagé est un secret : distribuez-le uniquement aux personnes autorisées et changez-le si nécessaire.
+Le bouton Aperçu montre des données fictives, pas les données réelles du PLC.

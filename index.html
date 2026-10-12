@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#09111f">
+  <meta name="description" content="SMC Pulse — suivi mobile des arrêts en cours et alertes de production.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/smc-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="./icons/smc-192.png">
+  <link rel="stylesheet" href="./app.css">
+  <title>SMC Pulse</title>
+</head>
+<body>
+  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="SMC Pulse accueil">
+      <span class="brand-mark"><span></span><span></span><span></span></span>
+      <span><strong>SMC<span class="brand-accent"> PULSE</span></strong><small>PRODUCTION MONITOR</small></span>
+    </a>
+    <div id="connectionBadge" class="connection-badge disconnected"><span class="status-dot"></span><span id="connectionText">Non connecté</span></div>
+  </header>
+
+  <main class="page-shell">
+    <section class="intro-row">
+      <div><p class="eyebrow">CENTRE DE SURVEILLANCE</p><h1>La ligne, <span>en direct.</span></h1><p class="intro-copy">Production du shift, arrêts en cours et historique filtrable.</p></div>
+      <button class="icon-btn" id="settingsButton" aria-label="Paramètres de connexion" title="Paramètres"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.4a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 0 0 0-7.2Z"/><path d="m19.4 15 .1.1a1.7 1.7 0 0 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 0 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 0 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9H4a1.7 1.7 0 0 1 0-3.4h.2A1.7 1.7 0 0 0 5.4 5.8l-.1-.1a1.7 1.7 0 0 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2V2a1.7 1.7 0 0 1 3.4 0v.2A1.7 1.7 0 0 0 17 3.4l.1-.1a1.7 1.7 0 0 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 0 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 2.9Z"/></svg></button>
+    </section>
+
+    <section id="setupCard" class="panel setup-panel hidden" aria-labelledby="setupTitle">
+      <div class="panel-icon"><svg viewBox="0 0 24 24"><path d="M4 7.5h16v11H4z"/><path d="M8 7.5V5h8v2.5M8 12h8M8 15h5"/></svg></div>
+      <p class="eyebrow">PREMIÈRE CONFIGURATION</p><h2 id="setupTitle">Connecter SMC</h2>
+      <p class="muted">Entre le code partagé fourni par le responsable SMC. L'adresse du bridge est configurée une seule fois par l'administrateur.</p>
+      <form id="connectionForm" class="form-stack">
+        <input id="apiUrl" type="hidden" value="">
+        <label for="apiToken">Code d'accès SMC</label><div class="token-row"><input id="apiToken" type="password" placeholder="Code partagé fourni par le responsable" autocomplete="off" required minlength="8"><button type="button" id="toggleToken" class="subtle-btn">Voir</button></div>
+        <button class="primary-btn" type="submit"><span>Vérifier le code et connecter</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></button>
+        <p id="setupError" class="error-text" role="status"></p>
+      </form>
+      <div class="notice"><span class="notice-icon">i</span><span>Le responsable configure une fois l'adresse HTTPS. Le PC SMC doit rester allumé; ce site ne se connecte pas directement au PLC.</span></div>
+    </section>
+
+    <section id="dashboard" class="hidden">
+      <div class="metrics-grid">
+        <article class="metric-card metric-main"><div class="metric-label"><span class="metric-symbol red-symbol">!</span> ARRÊTS ACTIFS</div><div class="metric-value" id="activeCount">—</div><div class="metric-foot"><span id="stationsAffected">Aucune station</span><span class="live-pulse"></span></div></article>
+        <article class="metric-card"><div class="metric-label"><span class="metric-symbol blue-symbol">↻</span> VARIANTE</div><div class="metric-value variant-value" id="variantValue">—</div><div class="metric-foot">Produit en cours</div></article>
+        <article class="metric-card"><div class="metric-label"><span class="metric-symbol blue-symbol">✓</span> PRODUIT CE SHIFT</div><div class="metric-value" id="producedValue">—</div><div class="metric-foot" id="shiftLabel">Shift actuel</div></article>
+        <article class="metric-card"><div class="metric-label"><span class="metric-symbol red-symbol">◷</span> DOWNTIME CE SHIFT</div><div class="metric-value duration-metric" id="shiftDowntimeValue">—</div><div class="metric-foot">Temps cumulé sans double-compter les chevauchements</div></article>
+      </div>
+
+      <div class="section-heading"><div><p class="eyebrow">ÉTAT ACTUEL</p><h2>Downtimes en cours</h2></div><button id="refreshButton" class="refresh-btn" aria-label="Actualiser"><svg viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9A7 7 0 0 1 17.4 6L20 12M4 12l2.6 6A7 7 0 0 0 18.4 15"/></svg></button></div>
+      <div id="filterRow" class="filter-row"><button class="filter-chip active" data-station="ALL">Toutes <span id="allFilterCount">0</span></button><button class="filter-chip" data-station="LOADING">Loading</button><button class="filter-chip" data-station="TAPE">Tape</button><button class="filter-chip" data-station="CLIP">Clip</button><button class="filter-chip" data-station="UNLOADING">Unloading</button></div>
+      <div id="eventList" class="event-list"><div class="empty-state"><div class="empty-orbit"><span>✓</span></div><h3>Aucun arrêt actif</h3><p>La ligne tourne sans arrêt signalé.</p></div></div>
+
+      <div class="section-heading history-heading"><div><p class="eyebrow">ANALYSE & TRAÇABILITÉ</p><h2>Historique par date et shift</h2><p class="muted compact-copy">Filtre les quantités, le downtime et les événements d'une période.</p></div><button id="historyRefresh" class="text-btn">Actualiser</button></div>
+      <section class="history-filter-panel">
+        <label for="historyDate">Date <input id="historyDate" type="date"></label>
+        <label for="historyShift">Shift <select id="historyShift"><option value="ALL">Tous les shifts</option><option value="Shift 1">Shift 1</option><option value="Shift 2">Shift 2</option><option value="Shift 3">Shift 3</option></select></label>
+        <button id="applyHistoryFilter" class="secondary-btn">Appliquer le filtre</button>
+      </section>
+      <div class="history-metrics-grid">
+        <article class="history-metric"><span>Quantité produite</span><strong id="historyProduced">—</strong><small>Finished good</small></article>
+        <article class="history-metric"><span>Downtime total</span><strong id="historyDowntime">—</strong><small id="historyPeriodLabel">Période choisie</small></article>
+        <article class="history-metric"><span>Événements downtime</span><strong id="historyDowntimeCount">—</strong><small>Dans la période</small></article>
+      </div>
+      <section class="topics-panel"><div class="topics-head"><div><p class="eyebrow">PARETO</p><h3>Main topics des arrêts</h3></div><span>Top 5</span></div><div id="topicList" class="topic-list"><p class="muted">Les causes apparaîtront ici.</p></div></section>
+      <div class="history-results-heading"><h3>Événements de la période</h3><span id="historyResultCount">—</span></div>
+      <div id="historyList" class="history-list"><p class="muted">Connecte-toi pour charger l'historique.</p></div>
+
+      <section class="alert-panel">
+        <div class="alert-copy"><span class="alert-icon"><svg viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg></span><div><h3>Alertes mobiles</h3><p id="notificationState">Active les notifications pour être averti d'un nouvel arrêt.</p></div></div>
+        <button id="enableAlerts" class="secondary-btn">Activer</button>
+      </section>
+      <div class="last-updated"><span class="updated-dot"></span><span id="lastUpdated">En attente de données…</span><span class="spacer"></span><span>Auto refresh · 5 s</span></div>
+    </section>
+
+    <section id="demoCard" class="demo-card hidden"><span class="demo-pill">APERÇU</span><div><strong>Découvrir l'interface</strong><p>Voir l'affichage avec des données d'exemple clairement identifiées.</p></div><button id="demoButton" class="secondary-btn">Aperçu</button></section>
+    <p class="footer-note">SMC PULSE <span>•</span> Private factory monitoring</p>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="modalShade" class="modal-shade hidden"><section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-head"><h2 id="modalTitle">Paramètres</h2><button id="closeSettings" class="icon-btn small" aria-label="Fermer">×</button></div><p class="muted">La clé reste dans le stockage local de ce téléphone et n'est jamais ajoutée au site publié.</p><button id="editConnection" class="secondary-btn full-btn">Modifier la connexion API</button><button id="disableAlerts" class="secondary-btn full-btn">Désactiver les alertes push</button><button id="disconnectButton" class="danger-btn full-btn">Déconnecter ce téléphone</button></section></div>
+  <script src="./config.js"></script>
+  <script src="./app.js" defer></script>
+</body>
+</html>
